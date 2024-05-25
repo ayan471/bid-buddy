@@ -5,8 +5,10 @@ import { database } from "@/db/database";
 import { bids, items } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+
 import { Knock } from "@knocklabs/node";
 import { env } from "@/env";
+import { isBidOver } from "@/util/bids";
 
 const knock = new Knock(env.KNOCK_SECRET_KEY);
 
@@ -14,11 +16,8 @@ export async function createBidAction(itemId: number) {
   const session = await auth();
 
   const userId = session?.user?.id;
-  if (!userId) {
-    throw new Error("You must be logged in to place a bid");
-  }
 
-  if (!session || !session.user || !session.user.id) {
+  if (!userId) {
     throw new Error("You must be logged in to place a bid");
   }
 
@@ -30,14 +29,19 @@ export async function createBidAction(itemId: number) {
     throw new Error("Item not found");
   }
 
+  if (isBidOver(item)) {
+    throw new Error("This auction is already over");
+  }
+
   const latestBidValue = item.currentBid + item.bidInterval;
 
   await database.insert(bids).values({
     amount: latestBidValue,
     itemId,
-    userId: session.user.id,
+    userId,
     timestamp: new Date(),
   });
+
   await database
     .update(items)
     .set({
@@ -52,7 +56,12 @@ export async function createBidAction(itemId: number) {
     },
   });
 
-  const recipients: { id: string; name: string; email: string }[] = [];
+  const recipients: {
+    id: string;
+    name: string;
+    email: string;
+  }[] = [];
+
   for (const bid of currentBids) {
     if (
       bid.userId !== userId &&
