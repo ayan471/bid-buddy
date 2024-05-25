@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createItemAction, createUploadUrlAction } from "./actions";
 import { useState } from "react";
+import { pageTitleStyles } from "@/styles";
 
 export default function CreatePage() {
   const [date, setDate] = useState<Date | undefined>();
   return (
-    <main className="container mx-auto py-12 max-w-lg space-y-8">
-      <h1 className="text-4xl  font-bold">Post an Item</h1>
+    <main className="space-y-8">
+      <h1 className={pageTitleStyles}>Post an Item</h1>
       <form
         className="flex flex-col border p-8 rounded-xl space-y-4"
         onSubmit={async (e) => {
